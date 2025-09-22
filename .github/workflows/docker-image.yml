@@ -3,7 +3,7 @@ name: Build and Deploy React + FastAPI Docker
 on:
   push:
     branches:
-      - main
+      - main   # Runs only when you push to main branch
 
 jobs:
   docker-deploy:
@@ -26,18 +26,22 @@ jobs:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
 
+    # Build & Push Frontend Image
     - name: Build Frontend Docker Image
       run: docker build -t $FRONTEND_IMAGE ./frontend
-
-    - name: Build Backend Docker Image
-      run: docker build -t $BACKEND_IMAGE ./backend
 
     - name: Push Frontend Docker Image
       run: docker push $FRONTEND_IMAGE
 
+    # Build & Push Backend Image
+    - name: Build Backend Docker Image
+      run: docker build -t $BACKEND_IMAGE ./backend
+
     - name: Push Backend Docker Image
       run: docker push $BACKEND_IMAGE
 
+    # OPTIONAL: Deploy to your own server (via SSH)
+    # Remove this section if you only want to push images
     - name: Deploy Containers on Server
       uses: appleboy/ssh-action@v0.1.7
       with:
@@ -45,13 +49,12 @@ jobs:
         username: ${{ secrets.SERVER_USER }}
         key: ${{ secrets.SERVER_SSH_KEY }}
         script: |
-          # Stop old containers if they exist
           docker stop react-frontend-container || true
           docker rm react-frontend-container || true
           docker stop fastapi-backend-container || true
           docker rm fastapi-backend-container || true
 
-          # Run new containers
           docker run -d --name react-frontend-container -p 80:80 $FRONTEND_IMAGE
           docker run -d --name fastapi-backend-container -p 8000:8000 $BACKEND_IMAGE
+
 
